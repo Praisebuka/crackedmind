@@ -1,9 +1,15 @@
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, ConfigDict
 from functools import lru_cache
 
 
 class Settings(BaseSettings):
+    model_config = ConfigDict(
+        protected_namespaces=(),
+        env_file=".env",
+        extra="ignore"
+    )
+
     # LLM
     anthropic_api_key: str = Field(..., env="ANTHROPIC_API_KEY")
     model_name: str = "claude-sonnet-4-20250514"
@@ -28,10 +34,6 @@ class Settings(BaseSettings):
 
     # Nigerian layer toggle
     naija_layer_enabled: bool = True
-
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
 
 
 @lru_cache()

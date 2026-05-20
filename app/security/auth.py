@@ -11,15 +11,12 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 import structlog
 from jose import JWTError, jwt
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthCredentials
+from fastapi import Depends, HTTPException, status, Header
 
 from app.config import get_settings
 
 log = structlog.get_logger()
 settings = get_settings()
-
-security = HTTPBearer()
 
 # ─── In-memory user store (v1.0) ─────────────────────────────────────────────
 # In production, query MongoDB or a real user database
@@ -57,12 +54,31 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return encoded_jwt
 
 
-async def verify_token(credentials: HTTPAuthCredentials = Depends(security)) -> str:
+async def verify_token(authorization: Optional[str] = Header(None)) -> str:
     """
-    FastAPI dependency: validate Bearer token.
+    FastAPI dependency: validate Bearer token from Authorization header.
     Returns username on success, raises 401 on failure.
+
+    Expected header format:
+      Authorization: Bearer <token>
     """
-    token = credentials.credentials
+    if not authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authorization header",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    # Extract token from "Bearer <token>" format
+    parts = authorization.split()
+    if len(parts) != 2 or parts[0].lower() != "bearer":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authorization header format",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    token = parts[1]
     try:
         payload = jwt.decode(
             token, settings.jwt_secret_key, algorithms=[settings.jwt_algorithm]
@@ -79,6 +95,7 @@ async def verify_token(credentials: HTTPAuthCredentials = Depends(security)) -> 
         log.warning("token_verification_failed", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token",
+            detail="Invalid or expired token",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
