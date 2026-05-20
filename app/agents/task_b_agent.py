@@ -59,6 +59,7 @@ def intent_analyzer_node(state: RecommendationState) -> dict:
     """
     Parse the user persona + conversation history into a structured intent dict.
     Extracts: explicit_needs, implicit_preferences, constraints, naija_signals.
+    Auto-detects domain from query keywords.
     """
     profile = state["profile"]
     request = state["request"]
@@ -75,6 +76,23 @@ def intent_analyzer_node(state: RecommendationState) -> dict:
         user_msgs = [m for m in request.conversation_history if m.role == "user"]
         if user_msgs:
             last_query = user_msgs[-1].content
+
+    # Domain inference from keywords
+    domain_keywords = {
+        "restaurants": ["food", "restaurant", "eat", "meal", "cuisine", "dish", "dining", "nigerian food"],
+        "books": ["book", "read", "novel", "story", "author", "literature"],
+        "products": ["product", "item", "buy", "shopping", "amazon"],
+    }
+    
+    inferred_domain = "all"
+    last_query_lower = last_query.lower()
+    for domain, keywords in domain_keywords.items():
+        if any(kw in last_query_lower for kw in keywords):
+            inferred_domain = domain
+            break
+    
+    # Use inferred domain unless explicitly overridden
+    target_domain = request.target_domain if request.target_domain != "all" else inferred_domain
 
     # Build search query
     query_parts = []
@@ -98,17 +116,19 @@ def intent_analyzer_node(state: RecommendationState) -> dict:
         "is_nigerian": is_nigerian,
         "location": location,
         "cold_start": cold_start,
-        "target_domain": request.target_domain or "all",
+        "target_domain": target_domain,
+        "inferred_domain": inferred_domain,
     }
 
     intent_summary = (
         f"User seeks: {last_query or ', '.join(cat_prefs) or 'general recommendations'}. "
+        f"Domain: {target_domain}. "
         f"Prefers categories: {', '.join(cat_prefs) or 'any'}. "
         f"Rating bar: ≥{rs.get('mean', 3.5):.1f} stars. "
         f"{'Nigerian cultural context active.' if is_nigerian else ''}"
     )
 
-    log.info("intent_analyzed", query=intent["search_query"], cold_start=cold_start)
+    log.info("intent_analyzed", query=intent["search_query"], domain=target_domain, cold_start=cold_start)
 
     return {
         "intent": intent,
@@ -209,11 +229,15 @@ Include all candidates. Sort by score descending."""
             if raw.startswith("json"):
                 raw = raw[4:]
         scores = json.loads(raw.strip())
+        log.info("cot_reranker_success", candidates_scored=len(scores))
     except Exception as e:
-        log.error("cot_reranker_failed", error=str(e))
-        # Fallback: use retrieval scores
+        error_msg = str(e)
+        log.error("cot_reranker_failed", error=error_msg)
+        if "credit" in error_msg.lower() or "balance" in error_msg.lower():
+            log.error("anthropic_insufficient_credits", detail="Add credits at https://console.anthropic.com/account/billing")
+        # Fallback: use retrieval scores (sorted)
         scores = [
-            {"item_id": c["item_id"], "score": c.get("retrieval_score", 0.5), "reasoning": "Retrieval score fallback"}
+            {"item_id": c["item_id"], "score": c.get("retrieval_score", 0.5), "reasoning": "Retrieval score (LLM unavailable)"}
             for c in candidates
         ]
 
