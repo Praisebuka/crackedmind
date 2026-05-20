@@ -97,3 +97,18 @@ class HealthResponse(BaseModel):
     model: str
     index_loaded: bool
     naija_layer: bool
+
+
+# ─── Authentication ───────────────────────────────────────────────────────────
+
+class LoginRequest(BaseModel):
+    """User credentials for login."""
+    username: str = Field(..., min_length=1, max_length=50)
+    password: str = Field(..., min_length=6, max_length=100)
+
+
+class LoginResponse(BaseModel):
+    """JWT token response."""
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int  # seconds

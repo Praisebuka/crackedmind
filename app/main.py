@@ -16,6 +16,7 @@ Architecture notes:
 import structlog
 import anthropic
 from contextlib import asynccontextmanager
+from datetime import timedelta
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -24,11 +25,15 @@ from app.models.schemas import (
     TaskARequest, TaskAResponse,
     TaskBRequest, TaskBResponse,
     HealthResponse,
+    LoginRequest, LoginResponse,
 )
 from app.core.rag_retriever import HybridRetriever
 from app.core.rating_predictor import RatingPredictor
 from app.agents.task_a_agent import run_task_a
 from app.agents.task_b_agent import run_task_b
+from app.security.auth import (
+    validate_credentials, create_access_token, verify_token
+)
 
 log = structlog.get_logger()
 settings = get_settings()
@@ -122,6 +127,41 @@ async def health(retriever: HybridRetriever = Depends(get_retriever)):
         model=settings.model_name,
         index_loaded=retriever.index_loaded,
         naija_layer=settings.naija_layer_enabled,
+    )
+
+
+@app.post("/auth/login", response_model=LoginResponse, tags=["Auth"])
+async def login(request: LoginRequest):
+    """
+    JWT login endpoint.
+
+    Validates credentials and returns a Bearer token valid for 60 minutes (configurable).
+    Use this token in the Authorization header for protected endpoints:
+      Authorization: Bearer <token>
+
+    **Demo credentials (v1.0):**
+      - username: demo, password: demo123
+      - username: user1, password: password1
+
+    In production, integrate with MongoDB user collection and bcrypt password hashing.
+    """
+    # Validate credentials
+    if not validate_credentials(request.username, request.password):
+        log.warning("login_failed", username=request.username)
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid username or password",
+        )
+
+    # Generate token
+    access_token = create_access_token(data={"sub": request.username})
+    expires_in = settings.jwt_expire_minutes * 60
+
+    log.info("login_success", username=request.username)
+    return LoginResponse(
+        access_token=access_token,
+        token_type="bearer",
+        expires_in=expires_in,
     )
 
 
