@@ -9,7 +9,7 @@ pandas==2.2.3
 scikit-learn==1.5.2
 langgraph==0.2.53
 langchain-anthropic==0.3.1
-langchain-core==0.3.24
+langchain-core==0.3.27
 pydantic==2.10.3
 pydantic-settings==2.6.1
 python-jose[cryptography]==3.3.0

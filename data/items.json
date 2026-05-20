@@ -1,0 +1,102 @@
+[
+  {
+    "item_id": "r001",
+    "item_name": "Buka Restaurant",
+    "category": "restaurant",
+    "description": "Authentic Nigerian local cuisine, jollof rice, egusi soup, suya",
+    "metadata": {
+      "price_tier": "budget",
+      "city": "Lagos"
+    }
+  },
+  {
+    "item_id": "r002",
+    "item_name": "Yellow Chilli",
+    "category": "restaurant",
+    "description": "Contemporary Nigerian fine dining, amala, ewedu, banga soup",
+    "metadata": {
+      "price_tier": "mid",
+      "city": "Lagos"
+    }
+  },
+  {
+    "item_id": "r003",
+    "item_name": "Chicken Republic",
+    "category": "fast_food",
+    "description": "Nigerian fast food chain, fried chicken, jollof rice, chips",
+    "metadata": {
+      "price_tier": "budget",
+      "city": "Abuja"
+    }
+  },
+  {
+    "item_id": "b001",
+    "item_name": "Things Fall Apart",
+    "category": "book",
+    "description": "Chinua Achebe novel, Igbo culture Nigeria, colonialism, Okonkwo",
+    "metadata": {
+      "genre": "literary fiction",
+      "year": "1958"
+    }
+  },
+  {
+    "item_id": "b002",
+    "item_name": "Half of a Yellow Sun",
+    "category": "book",
+    "description": "Chimamanda Ngozi Adichie, Biafran war, Nigeria, love story",
+    "metadata": {
+      "genre": "historical fiction",
+      "year": "2006"
+    }
+  },
+  {
+    "item_id": "b003",
+    "item_name": "Purple Hibiscus",
+    "category": "book",
+    "description": "Chimamanda Ngozi Adichie, Nigerian family, religion, coming of age",
+    "metadata": {
+      "genre": "literary fiction",
+      "year": "2003"
+    }
+  },
+  {
+    "item_id": "p001",
+    "item_name": "Techno Camon 30",
+    "category": "electronics",
+    "description": "Smartphone popular in Nigeria, camera, battery life, affordable",
+    "metadata": {
+      "brand": "Tecno",
+      "price_tier": "mid"
+    }
+  },
+  {
+    "item_id": "p002",
+    "item_name": "Thermocool Refrigerator",
+    "category": "appliances",
+    "description": "Energy-efficient fridge, popular Nigerian brand, NEPA-friendly inverter",
+    "metadata": {
+      "brand": "Thermocool",
+      "price_tier": "mid"
+    }
+  },
+  {
+    "item_id": "r004",
+    "item_name": "The Place Restaurant",
+    "category": "restaurant",
+    "description": "Nigerian restaurant chain, suya, grills, rice dishes, Lagos",
+    "metadata": {
+      "price_tier": "mid",
+      "city": "Lagos"
+    }
+  },
+  {
+    "item_id": "r005",
+    "item_name": "Iya Basira",
+    "category": "street_food",
+    "description": "Famous street food spot, agege bread, beans, fried plantain, Lagos mainland",
+    "metadata": {
+      "price_tier": "budget",
+      "city": "Lagos"
+    }
+  }
+]
