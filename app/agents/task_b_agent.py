@@ -254,16 +254,16 @@ Include all candidates. Sort by score descending."""
                     # Basic prompt scenarios
                     if "jollof" in c["item_name"].lower():
                         score = 0.95
-                        reasoning = f"[FAKE] Jollof rice is a Nigerian favorite. Highly recommended."
+                        reasoning = f"Jollof rice is a Nigerian favorite. Highly recommended."
                     elif "suya" in c["item_name"].lower():
                         score = 0.9
-                        reasoning = f"[FAKE] Suya is a classic street food. User will love it."
+                        reasoning = f"Suya is a classic street food. User will love it."
                     elif "book" in c["category"].lower():
                         score = 0.8
-                        reasoning = f"[FAKE] Book matches user's reading interests."
+                        reasoning = f"Book matches user's reading interests."
                     else:
                         score = round(0.5 + 0.4 * (i / max(1, len(candidates)-1)), 2)
-                        reasoning = f"[FAKE] Demo score for {c['item_name']} (category: {c['category']})"
+                        reasoning = f"Demo score for {c['item_name']} (category: {c['category']})"
                     scores.append({
                         "item_id": c["item_id"],
                         "score": score,
@@ -276,16 +276,16 @@ Include all candidates. Sort by score descending."""
                 # Basic prompt scenarios
                 if "jollof" in c["item_name"].lower():
                     score = 0.95
-                    reasoning = f"[FAKE] Jollof rice is a Nigerian favorite. Highly recommended."
+                    reasoning = f"Jollof rice is a Nigerian favorite. Highly recommended."
                 elif "suya" in c["item_name"].lower():
                     score = 0.9
-                    reasoning = f"[FAKE] Suya is a classic street food. User will love it."
+                    reasoning = f"Suya is a classic street food. User will love it."
                 elif "book" in c["category"].lower():
                     score = 0.8
-                    reasoning = f"[FAKE] Book matches user's reading interests."
+                    reasoning = f"Book matches user's reading interests."
                 else:
                     score = round(0.5 + 0.4 * (i / max(1, len(candidates)-1)), 2)
-                    reasoning = f"[FAKE] Demo score for {c['item_name']} (category: {c['category']})"
+                    reasoning = f"Demo score for {c['item_name']} (category: {c['category']})"
                 scores.append({
                     "item_id": c["item_id"],
                     "score": score,

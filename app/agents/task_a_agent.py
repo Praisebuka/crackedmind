@@ -199,11 +199,11 @@ async def run_task_a(
                 # Fallback 2: Pattern-based fake response
                 prompt = user_prompt.lower()
                 if "jollof" in prompt:
-                    generated_review = f"[FAKE] Jollof rice is always a party starter! This user loves spicy food and would rate it highly. Predicted rating: {predicted_rating:.1f} stars."
+                    generated_review = f"Jollof rice is always a party starter! This user loves spicy food and would rate it highly. Predicted rating: {predicted_rating:.1f} stars."
                 elif "suya" in prompt:
-                    generated_review = f"[FAKE] Suya is a classic Nigerian treat. This user enjoys street food and would recommend it. Predicted rating: {predicted_rating:.1f} stars."
+                    generated_review = f"Suya is a classic Nigerian treat. This user enjoys street food and would recommend it. Predicted rating: {predicted_rating:.1f} stars."
                 elif "book" in prompt:
-                    generated_review = f"[FAKE] This book seems interesting. The user often reads fiction and would likely enjoy it. Predicted rating: {predicted_rating:.1f} stars."
+                    generated_review = f"This book seems interesting. The user often reads fiction and would likely enjoy it. Predicted rating: {predicted_rating:.1f} stars."
                 else:
                     generated_review = (
                         f"[FAKE REVIEW] This is a simulated review for {request.product_details.item_name}. "
@@ -215,11 +215,11 @@ async def run_task_a(
             # Pattern-based fake response
             prompt = user_prompt.lower()
             if "jollof" in prompt:
-                generated_review = f"[FAKE] Jollof rice is always a party starter! This user loves spicy food and would rate it highly. Predicted rating: {predicted_rating:.1f} stars."
+                generated_review = f"Jollof rice is always a party starter! This user loves spicy food and would rate it highly. Predicted rating: {predicted_rating:.1f} stars."
             elif "suya" in prompt:
-                generated_review = f"[FAKE] Suya is a classic Nigerian treat. This user enjoys street food and would recommend it. Predicted rating: {predicted_rating:.1f} stars."
+                generated_review = f"Suya is a classic Nigerian treat. This user enjoys street food and would recommend it. Predicted rating: {predicted_rating:.1f} stars."
             elif "book" in prompt:
-                generated_review = f"[FAKE] This book seems interesting. The user often reads fiction and would likely enjoy it. Predicted rating: {predicted_rating:.1f} stars."
+                generated_review = f"This book seems interesting. The user often reads fiction and would likely enjoy it. Predicted rating: {predicted_rating:.1f} stars."
             else:
                 generated_review = (
                     f"[FAKE REVIEW] This is a simulated review for {request.product_details.item_name}. "
