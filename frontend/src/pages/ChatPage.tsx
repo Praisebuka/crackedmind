@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Container, Typography, Paper, Box, TextField, IconButton, Button, InputAdornment } from '@mui/material';
+import { Typography, Paper, Box, TextField, IconButton, Button, InputAdornment } from '@mui/material';
 import SendIcon from '@mui/icons-material/Send';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 import axios from 'axios';
@@ -21,8 +21,9 @@ const ChatPage: React.FC = () => {
     setInput('');
     // API call
     try {
-      const res = await axios.post('/api/agent', { message: input });
+      const res = await axios.post('http://localhost:8000/v1/task-a/simulate-review', { message: input });
       setMessages(msgs => [...msgs, { sender: 'agent', text: res.data.response }]);
+      console.log(res);
     } catch {
       setMessages(msgs => [...msgs, { sender: 'agent', text: 'Error: Could not reach backend.' }]);
     }
@@ -120,7 +121,7 @@ const ChatPage: React.FC = () => {
             </Box>
           ))}
         </Box>
-        <Box display="flex" alignItems="center" gap={1}>
+        <Box style={{ display: 'flex', background: '#d2d2d2' }} alignItems="center" gap={1}>
           <input
             type="file"
             style={{ display: 'none' }}
@@ -145,6 +146,7 @@ const ChatPage: React.FC = () => {
               background: 'rgba(255,255,255,0.85)',
               borderRadius: 2,
             }}
+            rows="4" aria-colspan="50"
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
