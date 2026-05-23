@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     # LLM
     anthropic_api_key: str = Field(..., env="ANTHROPIC_API_KEY")
     model_name: str = "claude-sonnet-4-20250514"
+    
+    # Gemini (fallback LLM)
+    gemini_api_key: str = Field("", env="GEMINI_API_KEY")
+    gemini_model_name: str = "gemini-1.5-flash"
 
     # Embeddings
     embedding_model: str = "all-MiniLM-L6-v2"
@@ -34,6 +38,10 @@ class Settings(BaseSettings):
 
     # Nigerian layer toggle
     naija_layer_enabled: bool = True
+    
+    # Evaluation
+    enable_evaluation: bool = True
+    bertscore_model: str = "bert-base-uncased"
 
 
 @lru_cache()

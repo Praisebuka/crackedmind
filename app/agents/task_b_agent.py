@@ -28,6 +28,8 @@ from app.core.user_profiler import build_user_profile, profile_to_prompt_summary
 from app.core.rag_retriever import HybridRetriever
 from app.core.nigerian_layer import build_naija_recommendation_context
 from app.security.gateway import validate_request
+from app.core.evaluation import NDCGEvaluator
+from app.core.gemini_integration import GeminiClient
 
 log = structlog.get_logger()
 settings = get_settings()
@@ -216,27 +218,80 @@ Respond with ONLY valid JSON array:
 ]
 Include all candidates. Sort by score descending."""
 
-    # PATCH: Always return fake LLM scores for testing
+    # First try: Real LLM call with Anthropic
     scores = []
-    for i, c in enumerate(candidates):
-        # Basic prompt scenarios
-        if "jollof" in c["item_name"].lower():
-            score = 0.95
-            reasoning = f"[FAKE] Jollof rice is a Nigerian favorite. Highly recommended."
-        elif "suya" in c["item_name"].lower():
-            score = 0.9
-            reasoning = f"[FAKE] Suya is a classic street food. User will love it."
-        elif "book" in c["category"].lower():
-            score = 0.8
-            reasoning = f"[FAKE] Book matches user's reading interests."
+    try:
+        message = await client.messages.create(
+            model=settings.model_name,
+            max_tokens=1500,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        raw = message.content[0].text.strip()
+        # Strip markdown fences if present
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+        scores = json.loads(raw.strip())
+        log.info("cot_reranker_success", candidates_scored=len(scores))
+    except Exception as e:
+        error_msg = str(e)
+        log.warning("anthropic_cot_failed", error=error_msg)
+        
+        # Fallback 1: Try Gemini API if available
+        if settings.gemini_api_key:
+            try:
+                gemini = GeminiClient(api_key=settings.gemini_api_key)
+                scores = await gemini.generate_json_response(prompt, max_tokens=1500)
+                if scores:
+                    log.info("cot_reranker_gemini_fallback_success", candidates_scored=len(scores))
+                else:
+                    raise Exception("Gemini returned empty JSON")
+            except Exception as e2:
+                log.warning("gemini_cot_fallback_failed", error=str(e2))
+                # Fallback 2: Pattern-based fake scores
+                for i, c in enumerate(candidates):
+                    # Basic prompt scenarios
+                    if "jollof" in c["item_name"].lower():
+                        score = 0.95
+                        reasoning = f"[FAKE] Jollof rice is a Nigerian favorite. Highly recommended."
+                    elif "suya" in c["item_name"].lower():
+                        score = 0.9
+                        reasoning = f"[FAKE] Suya is a classic street food. User will love it."
+                    elif "book" in c["category"].lower():
+                        score = 0.8
+                        reasoning = f"[FAKE] Book matches user's reading interests."
+                    else:
+                        score = round(0.5 + 0.4 * (i / max(1, len(candidates)-1)), 2)
+                        reasoning = f"[FAKE] Demo score for {c['item_name']} (category: {c['category']})"
+                    scores.append({
+                        "item_id": c["item_id"],
+                        "score": score,
+                        "reasoning": reasoning
+                    })
+                log.info("cot_reranker_fake_fallback_used")
         else:
-            score = round(0.5 + 0.4 * (i / max(1, len(candidates)-1)), 2)
-            reasoning = f"[FAKE] Demo score for {c['item_name']} (category: {c['category']})"
-        scores.append({
-            "item_id": c["item_id"],
-            "score": score,
-            "reasoning": reasoning
-        })
+            # Fallback 2: Pattern-based fake scores
+            for i, c in enumerate(candidates):
+                # Basic prompt scenarios
+                if "jollof" in c["item_name"].lower():
+                    score = 0.95
+                    reasoning = f"[FAKE] Jollof rice is a Nigerian favorite. Highly recommended."
+                elif "suya" in c["item_name"].lower():
+                    score = 0.9
+                    reasoning = f"[FAKE] Suya is a classic street food. User will love it."
+                elif "book" in c["category"].lower():
+                    score = 0.8
+                    reasoning = f"[FAKE] Book matches user's reading interests."
+                else:
+                    score = round(0.5 + 0.4 * (i / max(1, len(candidates)-1)), 2)
+                    reasoning = f"[FAKE] Demo score for {c['item_name']} (category: {c['category']})"
+                scores.append({
+                    "item_id": c["item_id"],
+                    "score": score,
+                    "reasoning": reasoning
+                })
+            log.info("cot_reranker_fake_fallback_used")
 
     # Map scores back to candidate dicts
     score_map = {s["item_id"]: s for s in scores}
@@ -330,6 +385,25 @@ def response_formatter_node(state: RecommendationState) -> dict:
             "explanation": c.get("cot_reasoning", "Matches your preferences."),
             "cold_start": cold_start,
         })
+
+    # Optional: Evaluate recommendations using NDCG@10
+    if settings.enable_evaluation:
+        try:
+            # Use user's review history as ideal items (items they rated highly)
+            ideal_items = [
+                {"item_id": r.item_id, "item_name": r.item_name}
+                for r in state["request"].user_persona.review_history
+                if r.rating >= 4.0  # High-rated items
+            ]
+            if ideal_items:
+                eval_metrics = NDCGEvaluator.evaluate_ranking(
+                    scored_items=candidates,
+                    ideal_items=ideal_items,
+                    k=10,
+                )
+                log.info("task_b_ndcg_evaluated", metrics=eval_metrics)
+        except Exception as e:
+            log.warning("ndcg_evaluation_failed", error=str(e))
 
     return {"recommendations": recommendations}
 

@@ -26,8 +26,11 @@ from app.core.rating_predictor import RatingPredictor
 from app.core.rag_retriever import HybridRetriever
 from app.core.nigerian_layer import build_naija_style_instructions
 from app.security.gateway import validate_request, detect_injection
+from app.core.evaluation import BERTScoreEvaluator
+from app.core.gemini_integration import GeminiClient
 
 log = structlog.get_logger()
+settings = get_settings()
 settings = get_settings()
 
 
@@ -166,20 +169,75 @@ async def run_task_a(
         naija_instructions=naija_instructions,
     )
 
-    # PATCH: Always return a fake LLM response for testing
-    prompt = user_prompt.lower()
-    if "jollof" in prompt:
-        generated_review = f"[FAKE] Jollof rice is always a party starter! This user loves spicy food and would rate it highly. Predicted rating: {predicted_rating:.1f} stars."
-    elif "suya" in prompt:
-        generated_review = f"[FAKE] Suya is a classic Nigerian treat. This user enjoys street food and would recommend it. Predicted rating: {predicted_rating:.1f} stars."
-    elif "book" in prompt:
-        generated_review = f"[FAKE] This book seems interesting. The user often reads fiction and would likely enjoy it. Predicted rating: {predicted_rating:.1f} stars."
-    else:
-        generated_review = (
-            f"[FAKE REVIEW] This is a simulated review for {request.product_details.item_name}. "
-            f"The user typically writes {profile['vocabulary']['avg_length']} words and gives an average rating of {profile['rating_stats']['mean']:.1f} stars. "
-            f"Predicted rating: {predicted_rating:.1f} stars."
+    # First try: Real LLM call with Anthropic
+    try:
+        message = await anthropic_client.messages.create(
+            model=settings.model_name,
+            max_tokens=600,
+            system=system_prompt,
+            messages=[{"role": "user", "content": user_prompt}],
         )
+        generated_review = message.content[0].text.strip()
+        log.info("task_a_anthropic_success")
+    except Exception as e:
+        log.warning("anthropic_call_failed", error=str(e))
+        # Fallback 1: Try Gemini API if available
+        if settings.gemini_api_key:
+            try:
+                gemini = GeminiClient(api_key=settings.gemini_api_key)
+                generated_review = await gemini.generate_text(
+                    prompt=user_prompt,
+                    system_prompt=system_prompt,
+                    max_tokens=600,
+                )
+                if generated_review:
+                    log.info("task_a_gemini_fallback_success")
+                else:
+                    raise Exception("Gemini returned empty response")
+            except Exception as e2:
+                log.warning("gemini_fallback_failed", error=str(e2))
+                # Fallback 2: Pattern-based fake response
+                prompt = user_prompt.lower()
+                if "jollof" in prompt:
+                    generated_review = f"[FAKE] Jollof rice is always a party starter! This user loves spicy food and would rate it highly. Predicted rating: {predicted_rating:.1f} stars."
+                elif "suya" in prompt:
+                    generated_review = f"[FAKE] Suya is a classic Nigerian treat. This user enjoys street food and would recommend it. Predicted rating: {predicted_rating:.1f} stars."
+                elif "book" in prompt:
+                    generated_review = f"[FAKE] This book seems interesting. The user often reads fiction and would likely enjoy it. Predicted rating: {predicted_rating:.1f} stars."
+                else:
+                    generated_review = (
+                        f"[FAKE REVIEW] This is a simulated review for {request.product_details.item_name}. "
+                        f"The user typically writes {profile['vocabulary']['avg_length']} words and gives an average rating of {profile['rating_stats']['mean']:.1f} stars. "
+                        f"Predicted rating: {predicted_rating:.1f} stars."
+                    )
+                log.info("task_a_fake_fallback_used")
+        else:
+            # Pattern-based fake response
+            prompt = user_prompt.lower()
+            if "jollof" in prompt:
+                generated_review = f"[FAKE] Jollof rice is always a party starter! This user loves spicy food and would rate it highly. Predicted rating: {predicted_rating:.1f} stars."
+            elif "suya" in prompt:
+                generated_review = f"[FAKE] Suya is a classic Nigerian treat. This user enjoys street food and would recommend it. Predicted rating: {predicted_rating:.1f} stars."
+            elif "book" in prompt:
+                generated_review = f"[FAKE] This book seems interesting. The user often reads fiction and would likely enjoy it. Predicted rating: {predicted_rating:.1f} stars."
+            else:
+                generated_review = (
+                    f"[FAKE REVIEW] This is a simulated review for {request.product_details.item_name}. "
+                    f"The user typically writes {profile['vocabulary']['avg_length']} words and gives an average rating of {profile['rating_stats']['mean']:.1f} stars. "
+                    f"Predicted rating: {predicted_rating:.1f} stars."
+                )
+            log.info("task_a_fake_fallback_used")
+    
+    # Optional: Evaluate review quality with BERTScore
+    eval_metrics = {}
+    if settings.enable_evaluation and retrieved:
+        try:
+            evaluator = BERTScoreEvaluator(model=settings.bertscore_model)
+            ref_reviews = [r.get("review_text", "") for r in retrieved]
+            eval_metrics = evaluator.evaluate_review(generated_review, ref_reviews)
+            log.info("task_a_bertscore_evaluated", metrics=eval_metrics)
+        except Exception as e:
+            log.warning("bertscore_evaluation_failed", error=str(e))
 
     log.info(
         "task_a_complete",
