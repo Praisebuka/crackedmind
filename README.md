@@ -6,6 +6,15 @@ Built for the LLM User Modeling & Recommendation Competition.
 Two tasks. One architecture. One cultural identity.
 
 ---
+## For Wonderful My Judges
+
+**Competition Task 1 → POST /v1/task-a/simulate-review**
+Input: user persona + product details. Output: simulated review + predicted star rating.
+
+**Competition Task 2 → POST /v1/task-b/recommend**
+Input: user persona + optional conversation history. Output: ranked recommendations with CoT reasoning.
+
+---
 
 ## What it does
 
