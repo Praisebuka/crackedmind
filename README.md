@@ -22,8 +22,8 @@ Input: user persona + optional conversation history. Output: ranked recommendati
 
 | Task | Input | Output |
 |------|-------|--------|
-| **Task A — User Modeling** | User review history + unseen item | Simulated review in user's authentic voice + predicted star rating |
-| **Task B — Recommendation** | User persona + optional conversation | Ranked personalized recommendations with CoT reasoning |
+| **Task A - User Modeling** | User review history + unseen item | Simulated review in user's authentic voice + predicted star rating |
+| **Task B - Recommendation** | User persona + optional conversation | Ranked personalized recommendations with CoT reasoning |
 
 ---
 
